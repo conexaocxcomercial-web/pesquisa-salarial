@@ -110,12 +110,12 @@ const tab = { fontVariantNumeric: "tabular-nums" };
 
 function Painel({ titulo, children, className = "", acao }) {
   return (
-    <div className={`rounded-lg p-4 lg:p-5 ${className}`} style={{ background: v("panel"), boxShadow: v("sombra") }}>
-      <div className="flex items-center justify-between gap-3 mb-3">
+    <div className={`h-full flex flex-col rounded-lg p-4 lg:p-5 ${className}`} style={{ background: v("panel"), boxShadow: v("sombra") }}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
         <h3 className="text-sm font-semibold" style={{ color: v("ink") }}>{titulo}</h3>
         {acao}
       </div>
-      {children}
+      <div className="flex-1 min-h-0">{children}</div>
     </div>
   );
 }
@@ -169,15 +169,32 @@ function Filtro({ rotulo, valor, onChange, opcoes, todos = "Todos" }) {
   );
 }
 
-function Indicador({ rotulo, valor, cor, grande }) {
+function Indicador({ rotulo, valor, cor }) {
   return (
-    <div className="flex flex-col justify-center min-w-0 px-4 py-3">
-      <span className="flex items-center gap-1.5 text-xs truncate" style={{ color: v("ink-3") }}>
+    <div className="flex flex-col justify-center min-w-0 px-3 xl:px-4 py-3">
+      <span className="flex items-center gap-1.5 text-xs whitespace-nowrap" style={{ color: v("ink-3") }}>
         {cor && <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ background: v(cor) }} />}
         {rotulo}
       </span>
-      <span className={`mt-1 font-semibold tracking-tight truncate ${grande ? "text-2xl lg:text-3xl" : "text-xl lg:text-2xl"}`}
-        style={{ color: v("ink"), ...tab }}>{valor}</span>
+      <span className="mt-1 font-semibold tracking-tight whitespace-nowrap"
+        style={{ color: v("ink"), fontSize: "clamp(1.125rem, 1.1vw + 0.5rem, 1.625rem)", lineHeight: 1.15, ...tab }}>
+        {valor}
+      </span>
+    </div>
+  );
+}
+
+function GrupoIndicadores({ titulo, itens, primeiro }) {
+  return (
+    <div className="min-w-0" style={{ borderLeft: primeiro ? "none" : undefined }}>
+      <p className="px-3 xl:px-4 pt-3 text-xs font-semibold" style={{ color: v("ink-2") }}>{titulo}</p>
+      <div className="grid grid-cols-3">
+        {itens.map(([rot, val, cor], i) => (
+          <div key={rot} style={{ borderLeft: i > 0 ? `1px solid ${v("rule")}` : "none" }}>
+            <Indicador rotulo={rot} valor={val} cor={cor} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -192,6 +209,18 @@ function Vazio() {
 const eixo = (C) => ({ tickLine: false, axisLine: false, tick: { fill: C.ink2, fontSize: 11.5 } });
 const rotuloTopo = (C, size = 10.5) => ({ position: "top", fill: C.ink2, fontSize: size, formatter: num, style: tab });
 const rotuloFim = (C) => ({ position: "right", fill: C.ink2, fontSize: 11.5, formatter: num, style: tab });
+
+function TickLinha({ x, y, payload, largura, C }) {
+  const max = Math.max(6, Math.floor((largura - 10) / 6.3));
+  const t = String(payload.value);
+  const texto = t.length > max ? t.slice(0, max - 1).trimEnd() + "…" : t;
+  return (
+    <text x={x - 8} y={y} dy="0.35em" textAnchor="end" fontSize={12} fill={C.ink2}>
+      {texto !== t && <title>{t}</title>}
+      {texto}
+    </text>
+  );
+}
 
 function NivelPorCargo({ linhas, C, movel, onCargo }) {
   const dados = useMemo(() => {
@@ -265,12 +294,14 @@ function PorPorte({ linhas, C }) {
 function PorPilar({ linhas, C, movel, onPilar, pilarAtivo }) {
   const dados = [...linhas].sort((a, b) => b.med - a.med);
   const clique = (e) => e && e.payload && onPilar(e.payload.cod);
+  const yW = movel ? 150 : 252;
   return (
     <Painel titulo="Salário médio por pilar">
-      <ResponsiveContainer width="100%" height={dados.length * 30 + 10}>
+      <ResponsiveContainer width="100%" height={dados.length * 32 + 8}>
         <BarChart data={dados} layout="vertical" margin={{ top: 0, right: 52, bottom: 0, left: 0 }}>
           <XAxis type="number" hide domain={[0, "dataMax"]} />
-          <YAxis type="category" dataKey={movel ? "curto" : "rotPilar"} width={movel ? 128 : 210} {...eixo(C)} interval={0} />
+          <YAxis type="category" dataKey={movel ? "curto" : "rotPilar"} width={yW} tickLine={false} axisLine={false} interval={0}
+            tick={<TickLinha largura={yW} C={C} />} />
           <Tooltip cursor={{ fill: C.canvas }} content={<Dica titulo={(p) => `${p.cod} ${p.nome}`} />} />
           <Bar dataKey="med" name="Salário médio" barSize={16} isAnimationActive={false} onClick={clique} style={{ cursor: "pointer" }}>
             {dados.map((r) => <Cell key={r.cod} fill={pilarAtivo === r.cod ? C.foco : C.base} />)}
@@ -282,61 +313,95 @@ function PorPilar({ linhas, C, movel, onPilar, pilarAtivo }) {
   );
 }
 
-function FaixaPorCargo({ linhas, C, movel }) {
+function FaixaPorCargo({ linhas, movel }) {
   const dados = useMemo(() => {
     const m = {};
     linhas.forEach((r) => { (m[r.cargo] = m[r.cargo] || []).push(r); });
-    return Object.entries(m).map(([cargo, it]) => {
-      const min = media(it.map((r) => r.min)), med = media(it.map((r) => r.med)), teto = media(it.map((r) => r.teto));
-      return { cargo, cargoCurto: CARGO_CURTO[cargo] || cargo, min, med, teto, base: min, faixa: teto - min };
-    }).sort((a, b) => b.teto - a.teto);
+    return Object.entries(m).map(([cargo, it]) => ({
+      cargo, cargoCurto: CARGO_CURTO[cargo] || cargo,
+      min: media(it.map((r) => r.min)), med: media(it.map((r) => r.med)), teto: media(it.map((r) => r.teto)),
+    })).sort((a, b) => b.teto - a.teto);
   }, [linhas]);
+  const escala = Math.max(...dados.map((d) => d.teto));
+  const pct = (x) => `${(x / escala) * 100}%`;
+  const colunas = movel ? "minmax(0,1fr) 52px 52px 52px" : "150px minmax(0,1fr) 64px 64px 64px";
+  const Valor = ({ x, forte }) => (
+    <span className={`text-right text-xs ${forte ? "font-semibold" : ""}`} style={{ color: forte ? v("ink") : v("ink-2"), ...tab }}>{num(x)}</span>
+  );
 
-  const Forma = ({ x, y, width, height, payload }) => {
-    const xm = x + ((payload.med - payload.min) / (payload.teto - payload.min || 1)) * width;
-    return (
-      <g>
-        <rect x={x} y={y} width={Math.max(width, 2)} height={height} rx={2} fill={C.faixa} />
-        <rect x={xm - 1.5} y={y - 3} width={3} height={height + 6} fill={C.ink} />
-      </g>
-    );
-  };
-  const rotulo = ({ x, y, width, height, index }) => {
-    const d = dados[index];
-    const xm = x + ((d.med - d.min) / (d.teto - d.min || 1)) * width;
-    return (
-      <g style={tab}>
-        <text x={x - 6} y={y + height / 2} dy="0.35em" textAnchor="end" fontSize={10.5} fill={C.ink3}>{num(d.min)}</text>
-        <text x={xm} y={y - 6} textAnchor="middle" fontSize={10.5} fontWeight={600} fill={C.ink}>{num(d.med)}</text>
-        <text x={x + width + 6} y={y + height / 2} dy="0.35em" fontSize={10.5} fill={C.ink3}>{num(d.teto)}</text>
-      </g>
-    );
-  };
   return (
     <Painel titulo="Faixa salarial por cargo"
       acao={<div className="flex gap-4 text-xs" style={{ color: v("ink-2") }}>
         <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm" style={{ background: v("faixa") }} />Mínimo a teto</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-0.5" style={{ background: v("ink") }} />Médio</span>
       </div>}>
-      <ResponsiveContainer width="100%" height={dados.length * 46 + 16}>
-        <BarChart data={dados} layout="vertical" margin={{ top: 14, right: 48, bottom: 0, left: 0 }} barCategoryGap={18}>
-          <XAxis type="number" hide domain={[0, "dataMax"]} />
-          <YAxis type="category" dataKey="cargoCurto" width={movel ? 132 : 150} {...eixo(C)} interval={0} />
-          <Tooltip cursor={{ fill: C.canvas }} content={({ active, payload }) => {
-            if (!active || !payload || !payload.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div className="rounded-md px-3 py-2 text-xs" style={{ background: v("panel"), border: `1px solid ${v("rule")}`, boxShadow: "0 4px 12px rgba(0,0,0,.18)", ...tab }}>
-                <div className="font-semibold mb-1" style={{ color: v("ink") }}>{d.cargo}</div>
-                {[["Mínimo", d.min], ["Médio", d.med], ["Teto", d.teto]].map(([k, x]) => (
-                  <div key={k} className="flex justify-between gap-6" style={{ color: v("ink-2") }}><span>{k}</span><span style={{ color: v("ink") }}>{brl(x)}</span></div>
-                ))}
+      <div className="h-full flex flex-col">
+        <div className="grid items-end gap-x-3 pb-2 text-xs" style={{ gridTemplateColumns: colunas, color: v("ink-3"), borderBottom: `1px solid ${v("rule")}` }}>
+          {!movel && <span>Cargo</span>}
+          <span>{movel ? "Cargo e faixa" : ""}</span>
+          <span className="text-right">Mínimo</span>
+          <span className="text-right">Médio</span>
+          <span className="text-right">Teto</span>
+        </div>
+        <div className="flex-1 flex flex-col">
+          {dados.map((d) => {
+            const barra = (
+              <div className="relative h-3 w-full" aria-hidden="true">
+                <div className="absolute inset-y-0 rounded-sm" style={{ left: pct(d.min), width: `calc(${pct(d.teto)} - ${pct(d.min)})`, background: v("faixa") }} />
+                <div className="absolute rounded-sm" style={{ left: `calc(${pct(d.med)} - 1.5px)`, top: -3, bottom: -3, width: 3, background: v("ink") }} />
               </div>
             );
-          }} />
-          <Bar dataKey="base" stackId="f" fill="transparent" isAnimationActive={false} />
-          <Bar dataKey="faixa" stackId="f" shape={<Forma />} barSize={12} isAnimationActive={false}>
-            <LabelList dataKey="faixa" content={rotulo} />
+            return (
+              <div key={d.cargo} className="flex-1 grid items-center gap-x-3 py-2.5"
+                style={{ gridTemplateColumns: colunas, minHeight: movel ? 56 : 40, borderBottom: `1px solid ${v("rule")}` }}
+                title={`${d.cargo}: mínimo ${brl(d.min)}, médio ${brl(d.med)}, teto ${brl(d.teto)}`}>
+                {movel ? (
+                  <div className="min-w-0 flex flex-col gap-2">
+                    <span className="text-xs truncate" style={{ color: v("ink-2") }}>{d.cargoCurto}</span>
+                    {barra}
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-xs truncate" style={{ color: v("ink-2") }}>{d.cargoCurto}</span>
+                    {barra}
+                  </>
+                )}
+                <Valor x={d.min} />
+                <Valor x={d.med} forte />
+                <Valor x={d.teto} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Painel>
+  );
+}
+
+function rotuloComContagem(dados, C) {
+  return ({ x, y, width, height, index }) => {
+    const d = dados[index];
+    if (d.med == null) return null;
+    return (
+      <text x={x + width + 8} y={y + height / 2} dy="0.35em" fontSize={12} style={tab}>
+        <tspan fontWeight={600} fill={C.ink}>{num(d.med)}</tspan>
+        <tspan fill={C.ink3}>{`  ${d.n} ${d.n === 1 ? "pilar" : "pilares"}`}</tspan>
+      </text>
+    );
+  };
+}
+
+function BarrasResumo({ titulo, dados, C, cores }) {
+  return (
+    <Painel titulo={titulo}>
+      <ResponsiveContainer width="100%" height={112}>
+        <BarChart data={dados} layout="vertical" margin={{ top: 4, right: 96, bottom: 4, left: 0 }} barCategoryGap={20}>
+          <XAxis type="number" hide domain={[0, "dataMax"]} />
+          <YAxis type="category" dataKey="rot" width={84} {...eixo(C)} tick={{ fill: C.ink2, fontSize: 12 }} />
+          <Tooltip cursor={{ fill: C.canvas }} content={<Dica />} />
+          <Bar dataKey="med" name="Salário médio" barSize={22} isAnimationActive={false}>
+            {dados.map((d, i) => <Cell key={d.rot} fill={cores[i]} />)}
+            <LabelList dataKey="med" content={rotuloComContagem(dados, C)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -347,60 +412,25 @@ function FaixaPorCargo({ linhas, C, movel }) {
 function PorAbrangencia({ linhas, C }) {
   const dados = ["Natal", "Brasil"].map((a) => {
     const it = linhas.filter((r) => r.abr === a);
-    return { abr: a === "Natal" ? "Natal (RN)" : "Brasil", n: it.length, med: it.length ? media(it.map((r) => r.med)) : null };
+    return { rot: a === "Natal" ? "Natal (RN)" : "Brasil", n: it.length, med: it.length ? media(it.map((r) => r.med)) : null };
   });
-  return (
-    <Painel titulo="Salário médio por abrangência">
-      <ResponsiveContainer width="100%" height={120}>
-        <BarChart data={dados} layout="vertical" margin={{ top: 0, right: 56, bottom: 0, left: 0 }} barCategoryGap={18}>
-          <XAxis type="number" hide domain={[0, "dataMax"]} />
-          <YAxis type="category" dataKey="abr" width={84} {...eixo(C)} />
-          <Tooltip cursor={{ fill: C.canvas }} content={<Dica />} />
-          <Bar dataKey="med" name="Salário médio" fill={C.base} isAnimationActive={false}>
-            <LabelList dataKey="med" {...rotuloFim(C)} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="mt-2 flex gap-6 text-xs" style={{ color: v("ink-3"), ...tab }}>
-        {dados.map((d) => <span key={d.abr}>{d.abr}: {d.n} {d.n === 1 ? "pilar" : "pilares"}</span>)}
-      </div>
-    </Painel>
-  );
+  return <BarrasResumo titulo="Salário médio por abrangência" dados={dados} C={C} cores={[C.base, C.base]} />;
 }
 
 function PorNivelPilar({ linhas, C }) {
   const dados = ["Pl", "Sr"].map((n) => {
     const it = linhas.filter((r) => r.nivel === n);
-    return { nivel: NIVEL[n], k: n, n: it.length, med: it.length ? media(it.map((r) => r.med)) : null };
+    return { rot: NIVEL[n], n: it.length, med: it.length ? media(it.map((r) => r.med)) : null };
   });
-  return (
-    <Painel titulo="Salário médio por nível exigido no pilar">
-      <ResponsiveContainer width="100%" height={120}>
-        <BarChart data={dados} layout="vertical" margin={{ top: 0, right: 56, bottom: 0, left: 0 }} barCategoryGap={18}>
-          <XAxis type="number" hide domain={[0, "dataMax"]} />
-          <YAxis type="category" dataKey="nivel" width={84} {...eixo(C)} />
-          <Tooltip cursor={{ fill: C.canvas }} content={<Dica />} />
-          <Bar dataKey="med" name="Salário médio" isAnimationActive={false}>
-            {dados.map((d) => <Cell key={d.k} fill={d.k === "Pl" ? C.pleno : C.senior} />)}
-            <LabelList dataKey="med" {...rotuloFim(C)} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="mt-2 flex gap-6 text-xs" style={{ color: v("ink-3"), ...tab }}>
-        {dados.map((d) => <span key={d.k}>{d.nivel}: {d.n} {d.n === 1 ? "pilar" : "pilares"}</span>)}
-      </div>
-    </Painel>
-  );
+  return <BarrasResumo titulo="Salário médio por nível exigido no pilar" dados={dados} C={C} cores={[C.pleno, C.senior]} />;
 }
 
 /* ------------------------------------------------------------------
    TABELA
 ------------------------------------------------------------------- */
 const COLS = [
-  { k: "curto", rot: "Pilar", txt: true, g: "id" },
-  { k: "nivel", rot: "Nível", txt: true, f: (r) => NIVEL[r.nivel], g: "id" },
-  { k: "cargoCurto", rot: "Cargo", txt: true, g: "id" },
-  { k: "cbo", rot: "CBO", txt: true, g: "id" },
+  { k: "curto", rot: "Pilar", txt: true, g: "id", apoio: (r) => `${r.cod}, ${NIVEL[r.nivel]}` },
+  { k: "cargoCurto", rot: "Cargo", txt: true, g: "id", apoio: (r) => `CBO ${r.cbo}` },
   { k: "abr", rot: "Abrangência", txt: true, g: "id" },
   { k: "min", rot: "Mínimo", g: "faixa" }, { k: "med", rot: "Médio", forte: true, g: "faixa" }, { k: "teto", rot: "Teto", g: "faixa" },
   { k: "jr", rot: "Júnior", g: "nivel" }, { k: "pl", rot: "Pleno", g: "nivel" }, { k: "sr", rot: "Sênior", g: "nivel" },
@@ -416,6 +446,7 @@ const GRUPOS = [
 ];
 const inicioGrupo = (c, i) => i > 0 && COLS[i - 1].g !== c.g;
 const val = (r, c) => (c.p ? r.porte[c.k] : r[c.k]);
+const fixa = (i, fundo) => (i === 0 ? { position: "sticky", left: 0, zIndex: 1, background: fundo, boxShadow: `1px 0 0 ${v("rule")}` } : {});
 
 function Tabela({ linhas }) {
   const [ord, setOrd] = useState({ k: "med", dir: -1 });
@@ -428,33 +459,30 @@ function Tabela({ linhas }) {
   });
   return (
     <Painel titulo="Detalhamento">
-      <div className="overflow-x-auto -mx-4 lg:-mx-5 px-4 lg:px-5">
-        <table className="w-full text-sm" style={{ minWidth: 1120, ...tab }}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: 960, borderCollapse: "separate", borderSpacing: 0, ...tab }}>
           <thead>
             <tr>
               {GRUPOS.map((gr) => (
                 <th key={gr.g} colSpan={COLS.filter((c) => c.g === gr.g).length}
-                  className="pt-1 pb-2 px-3 text-xs font-semibold text-center"
-                  style={{ color: v("ink"), borderLeft: gr.g !== "id" ? `1px solid ${v("rule")}` : "none" }}>
-                  {gr.rot && (
-                    <span className="block pb-1.5" style={{ borderBottom: `2px solid ${gr.g === "nivel" ? v("pleno") : v("base")}` }}>
-                      {gr.rot}
-                    </span>
-                  )}
+                  className="pt-1 pb-2 px-2.5 text-xs font-semibold text-center"
+                  style={{ color: v("ink-2"), borderLeft: gr.g !== "id" ? `1px solid ${v("rule")}` : "none",
+                    ...(gr.g === "id" ? { position: "sticky", left: 0, zIndex: 1, background: v("panel") } : {}) }}>
+                  {gr.rot && <span className="block pb-1.5" style={{ borderBottom: `2px solid ${v("rule")}` }}>{gr.rot}</span>}
                 </th>
               ))}
             </tr>
-            <tr style={{ background: v("canvas") }}>
+            <tr>
               {COLS.map((c, i) => {
                 const ativo = ord.k === c.k;
                 return (
-                  <th key={c.k} className={`py-2 px-3 text-xs font-semibold ${c.txt ? "text-left" : "text-right"}`}
-                    style={{ borderLeft: inicioGrupo(c, i) ? `1px solid ${v("rule")}` : "none" }}
+                  <th key={c.k} className={`py-2 px-2.5 text-xs font-semibold whitespace-nowrap ${c.txt ? "text-left" : "text-right"}`}
+                    style={{ background: v("canvas"), borderLeft: inicioGrupo(c, i) ? `1px solid ${v("rule")}` : "none", ...fixa(i, v("canvas")) }}
                     aria-sort={ativo ? (ord.dir === 1 ? "ascending" : "descending") : "none"}>
                     <button type="button" className="inline-flex items-center gap-1"
                       onClick={() => setOrd((o) => ({ k: c.k, dir: o.k === c.k ? -o.dir : c.txt ? 1 : -1 }))}
                       style={{ color: ativo ? v("ink") : v("ink-2") }}>
-                      {c.rot}<span aria-hidden="true" style={{ opacity: ativo ? 1 : 0 }}>{ord.dir === 1 ? "↑" : "↓"}</span>
+                      {c.rot}<span aria-hidden="true" className="inline-block w-2.5 text-left" style={{ opacity: ativo ? 1 : 0 }}>{ord.dir === 1 ? "↑" : "↓"}</span>
                     </button>
                   </th>
                 );
@@ -463,13 +491,15 @@ function Tabela({ linhas }) {
           </thead>
           <tbody>
             {lista.map((r) => (
-              <tr key={r.cod + r.fonte} style={{ borderBottom: `1px solid ${v("rule")}` }}>
+              <tr key={r.cod + r.fonte}>
                 {COLS.map((c, i) => {
                   const x = val(r, c);
                   return (
-                    <td key={c.k} className={`py-2.5 px-3 whitespace-nowrap ${c.txt ? "text-left" : "text-right"} ${c.forte ? "font-semibold" : ""}`}
-                      style={{ color: c.forte || c.k === "curto" ? v("ink") : v("ink-2"), borderLeft: inicioGrupo(c, i) ? `1px solid ${v("rule")}` : "none" }}>
-                      {c.f ? c.f(r) : c.txt ? x : num(x)}
+                    <td key={c.k} className={`py-2 px-2.5 whitespace-nowrap align-middle ${c.txt ? "text-left" : "text-right"} ${c.forte ? "font-semibold" : ""}`}
+                      style={{ color: c.forte || i === 0 ? v("ink") : v("ink-2"), borderBottom: `1px solid ${v("rule")}`,
+                        borderLeft: inicioGrupo(c, i) ? `1px solid ${v("rule")}` : "none", ...fixa(i, v("panel")) }}>
+                      {c.txt ? x : num(x)}
+                      {c.apoio && <div className="text-xs font-normal" style={{ color: v("ink-3") }}>{c.apoio(r)}</div>}
                     </td>
                   );
                 })}
@@ -551,6 +581,8 @@ export default function PainelPesquisaSalarial() {
     .painel svg text { font-family: inherit; }
     .painel button:focus-visible, .painel [role="combobox"]:focus-visible { outline: 2px solid var(--pleno); outline-offset: 2px; }
     .painel-menu [role="option"] { color: var(--ink); }
+    .grupo-ind { border-top: 1px solid var(--rule); }
+    @media (min-width: 1280px) { .grupo-ind { border-top: none; border-left: 1px solid var(--rule); } }
     .seletor-polegar { transition: transform .2s ease, background-color .2s ease; }
     @media (prefers-reduced-motion: reduce) { .seletor-polegar { transition: none; } }
     .painel-menu [role="option"][data-highlighted] { background: var(--hover); color: var(--ink); }
@@ -605,17 +637,14 @@ export default function PainelPesquisaSalarial() {
         </div>
 
         {/* Indicadores */}
-        <div className="rounded-lg grid grid-cols-3 lg:grid-cols-9 overflow-hidden" style={{ background: v("panel"), boxShadow: v("sombra") }}>
+        <div className="rounded-lg grid grid-cols-1 xl:grid-cols-11 overflow-hidden" style={{ background: v("panel"), boxShadow: v("sombra") }}>
           {[
-            ["Pilares", num(k.pilares)], ["Cargos", num(k.cargos)], ["CBOs", num(k.cbos)],
-            ["Salário mínimo", brl(k.min)], ["Salário médio", brl(k.med), null, true], ["Salário teto", brl(k.teto)],
-            ["Júnior", brl(k.jr), "junior"], ["Pleno", brl(k.pl), "pleno"], ["Sênior", brl(k.sr), "senior"],
-          ].map(([rot, val, cor, grande], i) => (
-            <div key={rot} style={{
-              borderLeft: i % 3 !== 0 || (!movel && i > 0) ? `1px solid ${v("rule")}` : "none",
-              borderTop: movel && i >= 3 ? `1px solid ${v("rule")}` : "none",
-            }}>
-              <Indicador rotulo={rot} valor={val} cor={cor} grande={grande} />
+            ["Cobertura", "xl:col-span-3", [["Pilares", num(k.pilares)], ["Cargos", num(k.cargos)], ["CBOs", num(k.cbos)]]],
+            ["Salário", "xl:col-span-4", [["Mínimo", brl(k.min)], ["Médio", brl(k.med)], ["Teto", brl(k.teto)]]],
+            ["Nível de experiência", "xl:col-span-4", [["Júnior", brl(k.jr), "junior"], ["Pleno", brl(k.pl), "pleno"], ["Sênior", brl(k.sr), "senior"]]],
+          ].map(([titulo, span, itens], i) => (
+            <div key={titulo} className={`${span} ${i > 0 ? "grupo-ind" : ""}`}>
+              <GrupoIndicadores titulo={titulo} itens={itens} />
             </div>
           ))}
         </div>
@@ -630,13 +659,11 @@ export default function PainelPesquisaSalarial() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4">
               <div className="lg:col-span-6"><PorPilar linhas={linhas} C={C} movel={movel} onPilar={alternar("pilar")} pilarAtivo={f.pilar} /></div>
-              <div className="lg:col-span-6 flex flex-col gap-3 md:gap-4">
-                <FaixaPorCargo linhas={linhas} C={C} movel={movel} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  <PorAbrangencia linhas={linhas} C={C} />
-                  <PorNivelPilar linhas={linhas} C={C} />
-                </div>
-              </div>
+              <div className="lg:col-span-6"><FaixaPorCargo linhas={linhas} movel={movel} /></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <PorAbrangencia linhas={linhas} C={C} />
+              <PorNivelPilar linhas={linhas} C={C} />
             </div>
             <Tabela linhas={linhas} />
           </>
