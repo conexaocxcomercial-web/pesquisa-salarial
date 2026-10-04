@@ -13,7 +13,7 @@ const MENSAGENS = {
 
 function Cartao({ cor, Icone, tipo, titulo }) {
   return (
-    <div className="flex-1 min-w-0 rounded-2xl p-5 flex flex-col gap-7" style={{ background: "#2A2A33" }}>
+    <div className="login-cartao flex-1 min-w-0 rounded-2xl flex flex-col" style={{ background: "#2A2A33" }}>
       <div className="flex items-center gap-2.5 text-[13px] font-semibold" style={{ color: cor }}><Icone size={18} aria-hidden="true" />{tipo}</div>
       <div className="flex flex-col gap-2.5">
         <div className="h-2 w-[70%] rounded" style={{ background: cor }} />
@@ -62,7 +62,7 @@ export default function Login() {
         <Logo logo={LOGOS.rh} altura={28} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 lg:hidden" />
         <Logo logo={LOGOS.rh} altura={40} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 hidden lg:inline-block" />
         <Logo logo={LOGOS.simbolo} altura={260} cor="var(--lima)" rotulo="" className="!absolute -right-24 -bottom-16 opacity-90 lg:hidden" />
-        <Logo logo={LOGOS.simbolo} altura={200} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-20 -bottom-24 opacity-90" />
+        <Logo logo={LOGOS.simbolo} altura={300} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-28 -bottom-24 opacity-90" />
         <div className="relative z-10 flex flex-col gap-4 lg:gap-6 max-w-[600px]">
           <h1 className="login-titulo m-0 font-bold text-white tracking-tight">Seus materiais de RH, em um só lugar.</h1>
           <p className="m-0 text-sm lg:text-lg xl:text-xl leading-relaxed max-w-[500px]" style={{ color: "var(--lilas)" }}>
