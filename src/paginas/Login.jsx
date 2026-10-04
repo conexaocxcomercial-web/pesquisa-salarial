@@ -13,7 +13,7 @@ const MENSAGENS = {
 
 function Cartao({ cor, Icone, tipo, titulo }) {
   return (
-    <div className="flex-1 min-w-0 rounded-2xl p-5 flex flex-col gap-10" style={{ background: "#2A2A33" }}>
+    <div className="flex-1 min-w-0 rounded-2xl p-5 flex flex-col gap-7" style={{ background: "#2A2A33" }}>
       <div className="flex items-center gap-2.5 text-[13px] font-semibold" style={{ color: cor }}><Icone size={18} aria-hidden="true" />{tipo}</div>
       <div className="flex flex-col gap-2.5">
         <div className="h-2 w-[70%] rounded" style={{ background: cor }} />
@@ -58,17 +58,17 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: "#fff" }}>
-      <section className="relative overflow-hidden flex flex-col justify-between px-6 py-7 lg:px-[72px] lg:py-16 lg:w-[59%] min-h-[300px]" style={{ background: "var(--grafite)" }}>
-        <Logo logo={LOGOS.rh} altura={28} cor="var(--lima)" rotulo="RH Estratégico" className="lg:hidden" />
-        <Logo logo={LOGOS.rh} altura={40} cor="var(--lima)" rotulo="RH Estratégico" className="hidden lg:inline-block" />
-        <Logo logo={LOGOS.simbolo} altura={300} cor="var(--lima)" rotulo="" className="!absolute -right-24 top-10 opacity-90 lg:hidden" />
-        <Logo logo={LOGOS.simbolo} altura={520} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-32 -bottom-20 opacity-90" />
-        <div className="relative z-10 flex flex-col gap-4 lg:gap-7 max-w-[620px] my-8 lg:my-0">
-          <h1 className="m-0 font-bold text-white tracking-tight text-[28px] leading-[1.1] lg:text-[56px] lg:leading-[1.05]">Seus materiais de RH, em um só lugar.</h1>
-          <p className="m-0 text-sm lg:text-xl leading-relaxed max-w-[520px]" style={{ color: "var(--lilas)" }}>
+      <section className="relative overflow-hidden flex flex-col gap-8 lg:gap-10 justify-between px-6 py-7 lg:px-16 lg:py-12 xl:px-[72px] xl:py-16 lg:w-[58%] lg:min-h-screen min-h-[300px]" style={{ background: "var(--grafite)" }}>
+        <Logo logo={LOGOS.rh} altura={28} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 lg:hidden" />
+        <Logo logo={LOGOS.rh} altura={40} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 hidden lg:inline-block" />
+        <Logo logo={LOGOS.simbolo} altura={260} cor="var(--lima)" rotulo="" className="!absolute -right-24 -bottom-16 opacity-90 lg:hidden" />
+        <Logo logo={LOGOS.simbolo} altura={300} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-28 -bottom-24 opacity-90" />
+        <div className="relative z-10 flex flex-col gap-4 lg:gap-6 max-w-[600px]">
+          <h1 className="m-0 font-bold text-white tracking-tight text-[28px] leading-[1.1] lg:text-[44px] xl:text-[54px] lg:leading-[1.05]">Seus materiais de RH, em um só lugar.</h1>
+          <p className="m-0 text-sm lg:text-lg xl:text-xl leading-relaxed max-w-[500px]" style={{ color: "var(--lilas)" }}>
             Dashboards, relatórios e apresentações do RH Estratégico, organizados por cliente e sempre na versão mais recente.
           </p>
-          <div className="hidden lg:flex gap-4 mt-3">
+          <div className="hidden xl:flex gap-4 mt-2">
             <Cartao cor="var(--roxo)" Icone={BarChart3} tipo="Dashboard" titulo="Pesquisa salarial 2026" />
             <Cartao cor="var(--lilas)" Icone={FileText} tipo="Relatório" titulo="Plano de cargos e salários" />
             <Cartao cor="var(--rosa)" Icone={Presentation} tipo="Apresentação" titulo="Resultados para a diretoria" />
