@@ -19,7 +19,7 @@
 }
 html, body, #root { margin: 0; min-height: 100%; }
 body {
-  font-family: "Hanken Grotesk", "Helvetica Neue", Helvetica, "Inter", Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,3 +44,17 @@ body {
 @keyframes entrada { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .entrada { animation: entrada 180ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .entrada { animation: none; } }
+
+/* Login: enquadramento em uma tela, sem rolagem no desktop */
+.login { min-height: 100vh; min-height: 100dvh; }
+.login-titulo { font-size: 28px; line-height: 1.1; }
+.login-cartoes { display: none; }
+@media (min-width: 1024px) {
+  .login { height: 100vh; height: 100dvh; overflow: hidden; }
+  .login-esquerda, .login-direita { padding: clamp(24px, 6vh, 64px) clamp(32px, 5vw, 72px); }
+  .login-direita { overflow-y: auto; }
+  .login-titulo { font-size: clamp(32px, min(3.8vw, 6.5vh), 54px); line-height: 1.05; }
+}
+@media (min-width: 1280px) and (min-height: 760px) {
+  .login-cartoes { display: flex; }
+}
