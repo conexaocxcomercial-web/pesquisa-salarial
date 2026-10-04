@@ -57,18 +57,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: "#fff" }}>
-      <section className="relative overflow-hidden flex flex-col gap-8 lg:gap-10 justify-between px-6 py-7 lg:px-16 lg:py-12 xl:px-[72px] xl:py-16 lg:w-[58%] lg:min-h-screen min-h-[300px]" style={{ background: "var(--grafite)" }}>
+    <div className="login flex flex-col lg:flex-row" style={{ background: "#fff" }}>
+      <section className="login-esquerda relative overflow-hidden flex flex-col gap-8 lg:gap-6 justify-between px-6 py-7 lg:w-[58%] lg:h-full min-h-[300px]" style={{ background: "var(--grafite)" }}>
         <Logo logo={LOGOS.rh} altura={28} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 lg:hidden" />
         <Logo logo={LOGOS.rh} altura={40} cor="var(--lima)" rotulo="RH Estratégico" className="relative z-10 hidden lg:inline-block" />
         <Logo logo={LOGOS.simbolo} altura={260} cor="var(--lima)" rotulo="" className="!absolute -right-24 -bottom-16 opacity-90 lg:hidden" />
-        <Logo logo={LOGOS.simbolo} altura={300} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-28 -bottom-24 opacity-90" />
+        <Logo logo={LOGOS.simbolo} altura={200} cor="var(--lima)" rotulo="" className="!absolute hidden lg:inline-block -right-20 -bottom-24 opacity-90" />
         <div className="relative z-10 flex flex-col gap-4 lg:gap-6 max-w-[600px]">
-          <h1 className="m-0 font-bold text-white tracking-tight text-[28px] leading-[1.1] lg:text-[44px] xl:text-[54px] lg:leading-[1.05]">Seus materiais de RH, em um só lugar.</h1>
+          <h1 className="login-titulo m-0 font-bold text-white tracking-tight">Seus materiais de RH, em um só lugar.</h1>
           <p className="m-0 text-sm lg:text-lg xl:text-xl leading-relaxed max-w-[500px]" style={{ color: "var(--lilas)" }}>
             Dashboards, relatórios e apresentações do RH Estratégico, organizados por cliente e sempre na versão mais recente.
           </p>
-          <div className="hidden xl:flex gap-4 mt-2">
+          <div className="login-cartoes gap-4 mt-2">
             <Cartao cor="var(--roxo)" Icone={BarChart3} tipo="Dashboard" titulo="Pesquisa salarial 2026" />
             <Cartao cor="var(--lilas)" Icone={FileText} tipo="Relatório" titulo="Plano de cargos e salários" />
             <Cartao cor="var(--rosa)" Icone={Presentation} tipo="Apresentação" titulo="Resultados para a diretoria" />
@@ -80,7 +80,7 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="flex-1 flex flex-col justify-center gap-7 lg:gap-10 px-6 py-7 lg:px-[72px] lg:py-16">
+      <section className="login-direita flex-1 flex flex-col justify-center gap-7 lg:gap-8 px-6 py-7 lg:h-full">
         <div className="flex flex-col gap-2">
           <h2 className="m-0 text-2xl lg:text-[32px] font-bold tracking-tight">Entrar</h2>
           <p className="m-0 text-[15px]" style={{ color: "var(--ink-2)" }}>Use o e-mail cadastrado pela conexão.cx.</p>
