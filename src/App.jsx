@@ -91,8 +91,8 @@ const CARGO_CURTO = {
    (CBOs convertidos em data pelo Excel foram restaurados)
 ------------------------------------------------------------------- */
 
-const DADOS = BRUTO.map(([cod, curto, nome, fonte, nivel, cargo, cbo, abr, min, med, teto, jr, pl, sr, micro, peq, md, grande]) => ({
-  cod, curto, nome, fonte, nivel, cargo, cargoCurto: CARGO_CURTO[cargo] || cargo, cbo, abr, min, med, teto, jr, pl, sr,
+const DADOS = BRUTO.map(([cod, curto, nome, fonte, nivel, cargo, cbo, abr, min, med, teto, jr, pl, sr, micro, peq, md, grande, piso]) => ({
+  cod, curto, nome, fonte, nivel, cargo, cargoCurto: CARGO_CURTO[cargo] || cargo, cbo, abr, piso, min, med, teto, jr, pl, sr,
   porte: { Micro: micro, Pequena: peq, "Média": md, Grande: grande },
 }));
 const unicos = (arr) => [...new Set(arr)];
@@ -236,7 +236,7 @@ function GrupoIndicadores({ titulo, itens, primeiro }) {
   return (
     <div className="min-w-0" style={{ borderLeft: primeiro ? "none" : undefined }}>
       <p className="px-3 xl:px-4 pt-3 text-xs font-semibold" style={{ color: v("ink-2") }}>{titulo}</p>
-      <div className="grid grid-cols-3">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${itens.length}, minmax(0, 1fr))` }}>
         {itens.map(([rot, val, cor], i) => (
           <div key={rot} style={{ borderLeft: i > 0 ? `1px solid ${v("rule")}` : "none" }}>
             <Indicador rotulo={rot} valor={val} cor={cor} />
@@ -329,36 +329,41 @@ function NivelPorCargo({ linhas, C, movel, onCargo, sub }) {
 }
 
 function PorPorte({ linhas, C, sub }) {
-  const dados = ["Micro", "Pequena", "Média", "Grande"].map((p) => {
-    const vals = linhas.map((r) => r.porte[p]).filter((x) => x != null);
-    return { porte: p, med: vals.length ? media(vals) : null, faltam: linhas.length - vals.length };
-  });
-  const geral = media(linhas.map((r) => r.med));
+  const PORTES = ["Micro", "Pequena", "Média", "Grande"];
+  // Os quatro portes são comparados sempre nas mesmas referências:
+  // só entram as que têm valor informado para todos os portes.
+  const base = linhas.filter((r) => PORTES.every((p) => r.porte[p] != null));
+  const fora = linhas.length - base.length;
+  const dados = PORTES.map((p) => ({ porte: p, med: base.length ? media(base.map((r) => r.porte[p])) : null }));
+  const geral = media(base.map((r) => r.med));
   return (
     <Painel titulo="Salário médio por porte de empresa" sub={sub}>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={dados} margin={{ top: 22, right: 4, bottom: 0, left: 4 }} barCategoryGap="28%">
-          <CartesianGrid vertical={false} stroke={C.rule} />
-          <XAxis dataKey="porte" {...eixo(C)} />
-          <YAxis hide domain={[0, "dataMax"]} />
-          <Tooltip cursor={{ fill: C.canvas }} content={({ active, payload, label }) => {
-            if (!active || !payload || !payload.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div className="rounded-md px-3 py-2 text-xs" style={{ background: v("panel"), border: `1px solid ${v("rule")}`, boxShadow: "0 4px 12px rgba(0,0,0,.18)", color: v("ink-2"), ...tab }}>
-                <div className="font-semibold mb-1" style={{ color: v("ink") }}>{label}</div>
-                <div className="flex justify-between gap-6"><span>Salário médio</span><span style={{ color: v("ink") }}>{brl(d.med)}</span></div>
-                {d.faltam > 0 && <div className="mt-1" style={{ color: v("ink-3") }}>{d.faltam} {d.faltam === 1 ? "referência sem dado" : "referências sem dado"} para este porte</div>}
-              </div>
-            );
-          }} />
-          <ReferenceLine y={geral} stroke={C.ink3} strokeDasharray="3 3"
-            label={{ value: `média geral ${num(geral)}`, position: "insideTopRight", fill: C.ink2, fontSize: 10.5 }} />
-          <Bar dataKey="med" name="Salário médio" fill={C.base} isAnimationActive={false} radius={[2, 2, 0, 0]}>
-            <LabelList dataKey="med" {...rotuloTopo(C, 11.5)} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {base.length === 0 ? (
+        <div className="h-[300px] flex items-center justify-center text-center text-sm px-6" style={{ color: v("ink-3") }}>
+          As referências filtradas não têm salário informado para todos os portes de empresa.
+        </div>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dados} margin={{ top: 22, right: 4, bottom: 0, left: 4 }} barCategoryGap="28%">
+              <CartesianGrid vertical={false} stroke={C.rule} />
+              <XAxis dataKey="porte" {...eixo(C)} />
+              <YAxis hide domain={[0, "dataMax"]} />
+              <Tooltip cursor={{ fill: C.canvas }} content={<Dica />} />
+              <ReferenceLine y={geral} stroke={C.ink3} strokeDasharray="3 3"
+                label={{ value: `média geral ${num(geral)}`, position: "insideTopRight", fill: C.ink2, fontSize: 10.5 }} />
+              <Bar dataKey="med" name="Salário médio" fill={C.base} isAnimationActive={false} radius={[2, 2, 0, 0]}>
+                <LabelList dataKey="med" {...rotuloTopo(C, 11.5)} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          {fora > 0 && (
+            <p className="mt-2 text-xs" style={{ color: v("ink-3") }}>
+              {fora} {fora === 1 ? "referência sem salário informado para algum porte ficou" : "referências sem salário informado para algum porte ficaram"} fora desta comparação.
+            </p>
+          )}
+        </>
+      )}
     </Painel>
   );
 }
@@ -369,7 +374,7 @@ function PorPilar({ linhas, C, movel, onPilar, pilarAtivo, sub }) {
     const m = {};
     linhas.forEach((r) => { (m[r.cod] = m[r.cod] || []).push(r); });
     const d = Object.values(m).map((it) => ({
-      ...it[0], fontes: it,
+      ...it[0], fontes: it, piso: media(it.map((r) => r.piso)),
       med: media(it.map((r) => r.med)), min: media(it.map((r) => r.min)), teto: media(it.map((r) => r.teto)),
     }));
     if (ordem === "valor") d.sort((a, b) => b.med - a.med);
@@ -396,6 +401,7 @@ function PorPilar({ linhas, C, movel, onPilar, pilarAtivo, sub }) {
             const r = payload[0].payload;
             const linhasDica = r.fontes.map((x) => [`Fonte ${x.fonte === "P" ? "principal" : "alternativa"}`, `${brl(x.med)} (CBO ${x.cbo}, ${x.abr})`]);
             if (r.fontes.length > 1) linhasDica.push(["Média das fontes", brl(r.med)]);
+            linhasDica.push(["Piso", brl(r.piso)]);
             linhasDica.push(["Faixa", `${brl(r.min)} a ${brl(r.teto)}`]);
             return (
               <div className="rounded-md px-3 py-2 text-xs" style={{ background: v("panel"), border: `1px solid ${v("rule")}`, boxShadow: "0 4px 12px rgba(0,0,0,.18)", color: v("ink-2"), minWidth: 240, ...tab }}>
@@ -424,12 +430,13 @@ function FaixaPorCargo({ linhas, movel, sub }) {
     linhas.forEach((r) => { (m[r.cargo] = m[r.cargo] || []).push(r); });
     return Object.entries(m).map(([cargo, it]) => ({
       cargo, cargoCurto: CARGO_CURTO[cargo] || cargo,
+      piso: media(it.map((r) => r.piso)),
       min: media(it.map((r) => r.min)), med: media(it.map((r) => r.med)), teto: media(it.map((r) => r.teto)),
     })).sort((a, b) => b.teto - a.teto);
   }, [linhas]);
   const escala = Math.max(...dados.map((d) => d.teto));
   const pct = (x) => `${(x / escala) * 100}%`;
-  const colunas = movel ? "minmax(0,1fr) 52px 52px 52px" : "150px minmax(0,1fr) 64px 64px 64px";
+  const colunas = movel ? "minmax(0,1fr) 46px 46px 46px 46px" : "150px minmax(0,1fr) 60px 60px 60px 60px";
   const Valor = ({ x, forte }) => (
     <span className={`text-right text-xs ${forte ? "font-semibold" : ""}`} style={{ color: forte ? v("ink") : v("ink-2"), ...tab }}>{num(x)}</span>
   );
@@ -444,6 +451,7 @@ function FaixaPorCargo({ linhas, movel, sub }) {
         <div className="grid items-end gap-x-3 pb-2 text-xs" style={{ gridTemplateColumns: colunas, color: v("ink-3"), borderBottom: `1px solid ${v("rule")}` }}>
           {!movel && <span>Cargo</span>}
           <span>{movel ? "Cargo e faixa" : ""}</span>
+          <span className="text-right">Piso</span>
           <span className="text-right">Mínimo</span>
           <span className="text-right">Médio</span>
           <span className="text-right">Teto</span>
@@ -459,7 +467,7 @@ function FaixaPorCargo({ linhas, movel, sub }) {
             return (
               <div key={d.cargo} className="flex-1 grid items-center gap-x-3 py-2.5"
                 style={{ gridTemplateColumns: colunas, minHeight: movel ? 56 : 40, borderBottom: `1px solid ${v("rule")}` }}
-                title={`${d.cargo}: mínimo ${brl(d.min)}, médio ${brl(d.med)}, teto ${brl(d.teto)}`}>
+                title={`${d.cargo}: piso ${brl(d.piso)}, mínimo ${brl(d.min)}, médio ${brl(d.med)}, teto ${brl(d.teto)}`}>
                 {movel ? (
                   <div className="min-w-0 flex flex-col gap-2">
                     <span className="text-xs truncate" style={{ color: v("ink-2") }}>{d.cargoCurto}</span>
@@ -471,6 +479,7 @@ function FaixaPorCargo({ linhas, movel, sub }) {
                     {barra}
                   </>
                 )}
+                <Valor x={d.piso} />
                 <Valor x={d.min} />
                 <Valor x={d.med} forte />
                 <Valor x={d.teto} />
@@ -537,7 +546,7 @@ const COLS = [
   { k: "curto", rot: "Pilar", txt: true, g: "id", apoio: (r) => `${r.cod}, ${NIVEL[r.nivel]}, fonte ${r.fonte === "P" ? "principal" : "alternativa"}` },
   { k: "cargoCurto", rot: "Cargo", txt: true, g: "id", apoio: (r) => `CBO ${r.cbo}` },
   { k: "abr", rot: "Abrangência", txt: true, g: "id" },
-  { k: "min", rot: "Mínimo", g: "faixa" }, { k: "med", rot: "Médio", forte: true, g: "faixa" }, { k: "teto", rot: "Teto", g: "faixa" },
+  { k: "piso", rot: "Piso", g: "faixa" }, { k: "min", rot: "Mínimo", g: "faixa" }, { k: "med", rot: "Médio", forte: true, g: "faixa" }, { k: "teto", rot: "Teto", g: "faixa" },
   { k: "jr", rot: "Júnior", g: "nivel" }, { k: "pl", rot: "Pleno", g: "nivel" }, { k: "sr", rot: "Sênior", g: "nivel" },
   { k: "Micro", rot: "Micro", p: true, g: "porte" }, { k: "Pequena", rot: "Pequena", p: true, g: "porte" },
   { k: "Média", rot: "Média", p: true, g: "porte" }, { k: "Grande", rot: "Grande", p: true, g: "porte" },
@@ -595,7 +604,7 @@ function Tabela({ linhas, sub }) {
         </button>
       </div>}>
       <div className="overflow-x-auto">
-        <table className="tabela w-full text-sm" style={{ minWidth: 960, borderCollapse: "separate", borderSpacing: 0, ...tab }}>
+        <table className="tabela w-full text-sm" style={{ minWidth: 1020, borderCollapse: "separate", borderSpacing: 0, ...tab }}>
           <thead>
             <tr>
               {GRUPOS.map((gr) => (
@@ -773,6 +782,7 @@ export default function PainelPesquisaSalarial() {
     pilares: unicos(linhas.map((r) => r.cod)).length,
     cargos: unicos(linhas.map((r) => r.cargo)).length,
     cbos: unicos(linhas.map((r) => r.cbo)).length,
+    piso: media(linhas.map((r) => r.piso)),
     min: media(linhas.map((r) => r.min)), med: media(linhas.map((r) => r.med)), teto: media(linhas.map((r) => r.teto)),
     jr: media(linhas.map((r) => r.jr)), pl: media(linhas.map((r) => r.pl)), sr: media(linhas.map((r) => r.sr)),
   }), [linhas]);
@@ -810,7 +820,7 @@ export default function PainelPesquisaSalarial() {
 
   const grupos = [
     ["Cobertura", "xl:col-span-3", [["Pilares", num(k.pilares)], ["Cargos", num(k.cargos)], ["CBOs", num(k.cbos)]]],
-    ["Salário", "xl:col-span-4", [["Mínimo", brl(k.min)], ["Médio", brl(k.med)], ["Teto", brl(k.teto)]]],
+    ["Salário", "xl:col-span-5", [["Piso", brl(k.piso)], ["Mínimo", brl(k.min)], ["Médio", brl(k.med)], ["Teto", brl(k.teto)]]],
     ["Nível de experiência", "xl:col-span-4", [["Júnior", brl(k.jr), "junior"], ["Pleno", brl(k.pl), "pleno"], ["Sênior", brl(k.sr), "senior"]]],
   ];
 
@@ -878,7 +888,7 @@ export default function PainelPesquisaSalarial() {
 
         {/* Indicadores */}
         <Entrada chave={chave} ordem={0}>
-          <div className={`rounded-lg overflow-hidden ${movel ? "indicadores-movel" : "grid grid-cols-1 xl:grid-cols-11"}`}
+          <div className={`rounded-lg overflow-hidden ${movel ? "indicadores-movel" : "grid grid-cols-1 xl:grid-cols-12"}`}
             style={{ background: v("panel"), boxShadow: v("sombra") }}>
             {grupos.map(([titulo, span, itens], i) => (
               <div key={titulo} className={`${movel ? "" : span} ${i > 0 && !movel ? "grupo-ind" : ""}`}>
